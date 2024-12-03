@@ -4,9 +4,10 @@ from azure.cognitiveservices.vision.computervision import ComputerVisionClient
 from azure.cognitiveservices.vision.computervision.models import VisualFeatureTypes
 from msrest.authentication import CognitiveServicesCredentials
 from dotenv import load_dotenv
-import uuid
 
-load_dotenv()
+# Load environment variables from .env file if it exists
+if os.path.exists('.env'):
+    load_dotenv()
 
 app = Flask(__name__)
 
@@ -49,7 +50,8 @@ def analyze_image():
         return jsonify(response)
     
     except Exception as e:
+        print(f"Error processing image: {str(e)}")  
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
