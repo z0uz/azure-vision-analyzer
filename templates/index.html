@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Vision Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            margin: 20px 0;
+        }
+        .result-section {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        .tag-item {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Azure Vision Analyzer</h1>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <form id="upload-form" class="mb-3">
+                            <div class="mb-3">
+                                <label for="image-input" class="form-label">Choose an image to analyze</label>
+                                <input type="file" class="form-control" id="image-input" accept="image/*" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Analyze Image</button>
+                        </form>
+
+                        <div id="preview" class="text-center">
+                            <img id="preview-image" class="preview-image d-none" alt="Preview">
+                        </div>
+
+                        <div id="results" class="result-section d-none">
+                            <h3>Analysis Results</h3>
+                            <div class="mb-3">
+                                <h5>Description:</h5>
+                                <p id="description"></p>
+                            </div>
+                            <div class="mb-3">
+                                <h5>Tags:</h5>
+                                <div id="tags"></div>
+                            </div>
+                            <div class="mb-3">
+                                <h5>Objects Detected:</h5>
+                                <div id="objects"></div>
+                            </div>
+                            <div class="mb-3">
+                                <h5>Faces Detected:</h5>
+                                <p id="faces"></p>
+                            </div>
+                        </div>
+
+                        <div id="error" class="alert alert-danger d-none"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('image-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewImage = document.getElementById('preview-image');
+                    previewImage.src = e.target.result;
+                    previewImage.classList.remove('d-none');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('upload-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const imageFile = document.getElementById('image-input').files[0];
+            formData.append('image', imageFile);
+
+            try {
+                document.getElementById('results').classList.add('d-none');
+                document.getElementById('error').classList.add('d-none');
+
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('description').textContent = data.description;
+                    
+                    const tagsDiv = document.getElementById('tags');
+                    tagsDiv.innerHTML = data.tags.map(tag => 
+                        `<span class="tag-item">${tag}</span>`
+                    ).join('');
+                    
+                    const objectsDiv = document.getElementById('objects');
+                    objectsDiv.innerHTML = data.objects.map(obj => 
+                        `<span class="tag-item">${obj}</span>`
+                    ).join('');
+                    
+                    document.getElementById('faces').textContent = 
+                        `${data.faces} face(s) detected`;
+                    
+                    document.getElementById('results').classList.remove('d-none');
+                } else {
+                    throw new Error(data.error || 'Failed to analyze image');
+                }
+            } catch (error) {
+                const errorDiv = document.getElementById('error');
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('d-none');
+            }
+        });
+    </script>
+</body>
+</html>
